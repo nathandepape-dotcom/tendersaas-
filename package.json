@@ -1,0 +1,22 @@
+{
+  "name": "ted-scraper",
+  "version": "1.0.0",
+  "description": "A web scraper for TED (Tenders Electronic Daily) using TypeScript and Bun",
+  "type": "module",
+  "scripts": {
+    "start": "bun run src/scraper.ts",
+    "dev": "bun run --watch src/scraper.ts",
+    "api": "bun run src/api.ts"
+  },
+  "keywords": ["scraper", "ted", "tenders", "typescript", "bun"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "playwright": "^1.48.0",
+    "prisma": "^6.18.0"
+  }
+}

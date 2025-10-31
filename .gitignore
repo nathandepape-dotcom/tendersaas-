@@ -1,0 +1,17 @@
+node_modules/
+.temp/
+*.log
+.DS_Store
+tenders.json
+tenders.csv
+bun.lockb
+search_history.ndjson
+debug_page.html
+ted_page.html
+ted_results.html
+*_research.md
+*_tenders.json
+fetching.md
+
+
+
