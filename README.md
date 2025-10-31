@@ -8,7 +8,6 @@ A web scraper for TED (Tenders Electronic Daily) using TypeScript and Bun, with 
 - 📊 Extract tender information (title, reference, contract name, deadline, budget, publication date)
 - 🌐 React-based web interface for searching and viewing tenders
 - 🚀 REST API server built with Bun
-- 📝 Local search history logging (NDJSON format)
 - 💾 Export results to JSON or CSV format
 - 📦 Type-safe implementation with TypeScript
 - ⚡ Fast execution with Bun runtime
@@ -85,14 +84,12 @@ The API server runs on `http://localhost:3001` by default:
 
 - `GET /health` - Health check
 - `GET /search?query=YOUR_QUERY&scope=ACTIVE` - Search for tenders
-- `GET /history` - Get recent search history (last 10 searches)
 
 ## Output
 
 Results are saved to:
 - `tenders.json` - JSON format (default)
 - `tenders.csv` - CSV format
-- `search_history.ndjson` - Search history log (NDJSON format)
 
 Each tender includes:
 - `title` - Main tender title

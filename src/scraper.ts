@@ -1,7 +1,6 @@
 import { chromium } from 'playwright';
 import * as cheerio from 'cheerio';
-import { writeFile, appendFile, readFile } from 'fs/promises';
-import { existsSync } from 'fs';
+import { writeFile } from 'fs/promises';
 import { join } from 'path';
 
 interface TenderData {
@@ -113,33 +112,47 @@ class TEDScraper {
             fullLink = `${this.baseUrl}${href}`;
           }
           
-          // Get reference number from link text (format: 576477-2025)
-          const reference = $link.text().trim();
+          // Get reference number from link text or href (format: 576477-2025)
+          let reference = $link.text().trim();
+          
+          // If reference is empty, try to extract from href
+          if (!reference && href.includes('/detail/')) {
+            const match = href.match(/(\d+-\d+)/);
+            if (match) {
+              reference = match[1];
+            }
+          }
           
           // Find parent row to get title and other details
-          const $row = $link.closest('tr');
+          const $row = $link.closest('tr, div, li, article').first();
           let title = '';
           let deadline = '';
           let publicationDate = '';
           let budget = '';
           
           if ($row.length > 0) {
-            // Title is in the list item with class containing "evkt30" - get ALL text from all spans
-            const $titleContainer = $row.find('li.css-1evkt30, li[class*="evkt"]').first();
-            if ($titleContainer.length > 0) {
-              // Get all text from all child spans and combine them
-              title = $titleContainer.find('span').map((i, span) => $(span).text()).get().join('').trim();
-            }
+            // Try to get title from various selectors
+            title = $row.find('h1, h2, h3, .title, [class*="title"]').first().text().trim();
             
-            // If still no title, try finding text with "span" that contains the description
+            // If still no title, try the original selectors
             if (!title) {
-              const $spans = $row.find('li[class*="evkt"] span');
-              title = $spans.map((i, span) => $(span).text()).get().join('').trim();
-            }
-            
-            // Last resort: get first span with u0hsu5 class
-            if (!title) {
-              title = $row.find('span.css-u0hsu5, span[class*="u0hsu5"]').first().text().trim();
+              // Title is in the list item with class containing "evkt30" - get ALL text from all spans
+              const $titleContainer = $row.find('li.css-1evkt30, li[class*="evkt"]').first();
+              if ($titleContainer.length > 0) {
+                // Get all text from all child spans and combine them
+                title = $titleContainer.find('span').map((i, span) => $(span).text()).get().join('').trim();
+              }
+              
+              // If still no title, try finding text with "span" that contains the description
+              if (!title) {
+                const $spans = $row.find('li[class*="evkt"] span');
+                title = $spans.map((i, span) => $(span).text()).get().join('').trim();
+              }
+              
+              // Last resort: get first span with u0hsu5 class
+              if (!title) {
+                title = $row.find('span.css-u0hsu5, span[class*="u0hsu5"]').first().text().trim();
+              }
             }
             
             // Extract deadline from the last column (deadline cell)
@@ -162,16 +175,21 @@ class TEDScraper {
             }
           }
           
-          // Only push when we have a proper title and link
-          if (title && fullLink) {
+          // Use reference as fallback title if no title found
+          if (!title && reference) {
+            title = reference;
+          }
+          
+          // Only push when we have a link (title is optional but preferred)
+          if (fullLink) {
             tenders.push({
-              title: title || 'Untitled Tender',
+              title: title || reference || 'Untitled Tender',
               link: fullLink,
-              reference: reference,
+              reference: reference || undefined,
               deadline: deadline || undefined,
               publicationDate: publicationDate || undefined,
               budget: budget || undefined,
-              contractName: title || undefined,
+              contractName: title || reference || undefined,
             });
           }
         });
@@ -417,7 +435,6 @@ async function main() {
   console.log('=== TED Tender Scraper ===\n');
   
   const scraper = new TEDScraper();
-  const startedAt = Date.now();
   
   try {
     const tenders = await scraper.search(query, scope);
@@ -457,31 +474,8 @@ async function main() {
       await scraper.exportToJSON(tenders);
     }
 
-    await logSearch({
-      query,
-      scope,
-      resultsCount: tenders.length,
-      startedAt: new Date(startedAt).toISOString(),
-      finishedAt: new Date().toISOString(),
-      durationMs: Date.now() - startedAt,
-      status: 'success',
-      exportFormat: format,
-      exportPath: format === 'json' ? 'tenders.json' : 'tenders.csv',
-    });
-
   } catch (error) {
     console.error('Failed to scrape TED website:', error);
-    await logSearch({
-      query,
-      scope,
-      resultsCount: 0,
-      startedAt: new Date(startedAt).toISOString(),
-      finishedAt: new Date().toISOString(),
-      durationMs: Date.now() - startedAt,
-      status: 'error',
-      exportFormat: format,
-      error: String((error as Error)?.message ?? error),
-    });
     process.exit(1);
   }
 }
@@ -493,27 +487,3 @@ if (import.meta.main) {
 
 export { TEDScraper };
 export type { TenderData };
-// --- Local search history (NDJSON) helpers ---
-type SearchHistoryRecord = {
-  query: string;
-  scope: string;
-  resultsCount: number;
-  startedAt: string;
-  finishedAt: string;
-  durationMs: number;
-  status: 'success' | 'error';
-  exportFormat?: string;
-  exportPath?: string;
-  error?: string;
-};
-
-async function logSearch(record: SearchHistoryRecord, file = 'search_history.ndjson'): Promise<void> {
-  await appendFile(file, JSON.stringify(record) + '\n', 'utf-8');
-}
-
-async function getRecentHistory(n = 20, file = 'search_history.ndjson'): Promise<SearchHistoryRecord[]> {
-  if (!existsSync(file)) return [];
-  const content = await readFile(file, 'utf-8');
-  const lines = content.trim().split('\n').filter(Boolean);
-  return lines.slice(-n).map((l) => JSON.parse(l) as SearchHistoryRecord);
-}

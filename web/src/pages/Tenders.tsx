@@ -13,12 +13,6 @@ type Tender = {
 export function Tenders() {
   const [tenders, setTenders] = useState<Tender[]>([]);
   const [q, setQ] = useState('');
-  const [recent, setRecent] = useState<{
-    query: string;
-    scope: string;
-    startedAt: string;
-    resultsCount: number;
-  }[]>([]);
 
   useEffect(() => {
     const load = async () => {
@@ -28,17 +22,6 @@ export function Tenders() {
       } catch (e) {
         console.error('Failed to fetch tenders.json', e);
       }
-      try {
-        const r2 = await fetch('/@fs/Users/nathandep/Documents/tenderssaas/search_history.ndjson');
-        const text = await r2.text();
-        const rows = text
-          .split('\n')
-          .map((l) => l.trim())
-          .filter(Boolean)
-          .map((l) => JSON.parse(l)) as any[];
-        const sorted = rows.sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
-        setRecent(sorted.slice(0, 10).map((r) => ({ query: r.query, scope: r.scope, startedAt: r.startedAt, resultsCount: r.resultsCount })));
-      } catch {}
     };
 
     load();
@@ -68,17 +51,6 @@ export function Tenders() {
 
   return (
     <div>
-      <div style={{ marginBottom: 12 }}>
-        <strong>Dernières recherches</strong>
-        <ul style={{ marginTop: 8 }}>
-          {recent.map((r, i) => (
-            <li key={i}>
-              {new Date(r.startedAt).toLocaleString()} — “{r.query}” ({r.scope}) · {r.resultsCount} résultats
-            </li>
-          ))}
-        </ul>
-      </div>
-
       <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
         <input
           placeholder="Search tenders..."

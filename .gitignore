@@ -12,6 +12,9 @@ ted_results.html
 *_research.md
 *_tenders.json
 fetching.md
+.env
+.env.local
+.env.*.local
 
 
 

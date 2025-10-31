@@ -10,26 +10,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Historique des recherches
-model SearchHistory {
-  id            String    @id @default(cuid())
-  query         String
-  scope         String    // ACTIVE, AWARD, ALL
-  resultsCount  Int       @default(0)
-  status        String    // success, error
-  exportFormat  String?   // json, csv
-  exportPath    String?
-  error         String?
-  createdAt     DateTime  @default(now())
-
-  // Relation avec les tenders trouvés
-  tenders       Tender[]
-
-  @@index([createdAt])
-  @@index([query])
-  @@map("search_history")
-}
-
 // Tender trouvé lors d'une recherche
 model Tender {
   id              String    @id @default(cuid())
@@ -43,14 +23,9 @@ model Tender {
   description     String?   @db.Text
   budget          String?
   
-  // Relation avec l'historique de recherche
-  searchHistoryId String
-  searchHistory   SearchHistory @relation(fields: [searchHistoryId], references: [id], onDelete: Cascade)
-  
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  @@index([searchHistoryId])
   @@index([reference])
   @@index([deadline])
   @@map("tenders")
